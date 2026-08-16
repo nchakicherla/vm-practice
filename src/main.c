@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 
 #include "arena.h"
 
@@ -14,7 +15,7 @@ int main(void) {
 
 	for (int i = 0; i < LARGE_NUM; i++) {
 		large_array[i] = i;
-		printf("large_array[%d]: %d\n", i, large_array[i]);
+		assert(large_array[i] == i);
 	}
 
 	printf("successfully tested arena write and read\n");
