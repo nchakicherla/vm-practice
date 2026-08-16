@@ -57,8 +57,9 @@ static size_t align_up(size_t n, size_t alignment) {
 void *arena_alloc(Arena *arena, size_t size) {
 	ArenaBlock *block = arena->current;
 	size_t aligned_offset = align_up(block->offset, ARENA_ALIGNMENT);
+	size_t remaining = aligned_offset <= block->capacity ? block->capacity - aligned_offset : 0;
 
-	if (aligned_offset + size > block->capacity) {
+	if (size > remaining) {
 		if (block->next && block->next->capacity >= size) {
 			block = block->next;
 		} else {
