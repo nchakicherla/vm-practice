@@ -7,4 +7,8 @@ add_compile_options(-Wall -Wextra)
 
 set(SOURCES src/arena.c src/main.c)
 
+add_library(linenoise STATIC external/linenoise/linenoise.c)
+target_include_directories(linenoise PUBLIC external/linenoise)
+
 add_executable(main.run ${SOURCES})
+target_link_libraries(main.run PRIVATE linenoise)

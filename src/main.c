@@ -1,25 +1,33 @@
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "linenoise.h"
 
 #include "arena.h"
 
 #define LARGE_NUM 10000
 
 int main(void) {
-	printf("hello, world\n");
 
-	Arena arena;
-	arena_init(&arena, 256);
+	char *line;
 
-	int *large_array = arena_alloc(&arena, LARGE_NUM * sizeof(int));
+	while ((line = linenoise("> ")) != NULL) {
+		linenoiseHistoryAdd(line);
 
-	for (int i = 0; i < LARGE_NUM; i++) {
-		large_array[i] = i;
-		assert(large_array[i] == i);
+		if (0 == strcmp(line, ".exit")) {
+			linenoiseFree(line);
+			break;
+		}
+
+		size_t line_len = strlen(line);
+
+		printf("you entered: %s\n", line);
+		printf("line_len: %zu\n", line_len);
+
+		linenoiseFree(line);
 	}
-
-	printf("successfully tested arena write and read\n");
-	arena_destroy(&arena);
 
 	return 0;
 }
