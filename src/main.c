@@ -8,8 +8,6 @@
 #include "arena.h"
 #include "file.h"
 
-#define LARGE_NUM 10000
-
 int main(void) {
 
 	char *line;
