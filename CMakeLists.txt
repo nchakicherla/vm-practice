@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra)
 
-set(SOURCES src/arena.c src/main.c)
+set(SOURCES src/arena.c src/file.c src/main.c)
 
 add_library(linenoise STATIC external/linenoise/linenoise.c)
 target_include_directories(linenoise PUBLIC external/linenoise)

@@ -6,6 +6,7 @@
 #include "linenoise.h"
 
 #include "arena.h"
+#include "file.h"
 
 #define LARGE_NUM 10000
 
