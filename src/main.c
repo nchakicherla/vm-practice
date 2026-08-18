@@ -15,24 +15,31 @@ typedef struct FieldRowCounter {
 	size_t num_rows;
 	size_t num_cols_header;
 	size_t num_cols_first_row; // only used if header row doesn't exist
-	bool header_row_exists;
+	bool has_header_row;
 	bool error_encountered;
 	size_t total_col_length[64]; // can increase cap if CSV with > 64 columns is ingested
 } FieldRowCounter;
 
+typedef struct Copier {
+	char **col_data;
+	char **write_ptrs;
+	bool has_header_row;
+	size_t current_col;
+} Copier;
+
 static void cb1_first(void *field, size_t len, void *data) {
 	FieldRowCounter *counter = (FieldRowCounter *)data;
-	if (counter->header_row_exists && counter->num_rows == 0) {
+	if (counter->has_header_row && counter->num_rows == 0) {
 		counter->num_cols_header++;
 		counter->num_cols_first_row++;
 	}
-	if (!counter->header_row_exists && counter->num_rows == 0) {
+	if (!counter->has_header_row && counter->num_rows == 0) {
 		counter->num_cols_first_row++;
 	}
-	if (counter->header_row_exists && counter->num_rows > 0) {
+	if (counter->has_header_row && counter->num_rows > 0) {
 		counter->total_col_length[counter->num_cols] += len + 1;
 	}
-	if (!counter->header_row_exists) {
+	if (!counter->has_header_row) {
 		counter->total_col_length[counter->num_cols] += len + 1;		
 	}
 	counter->num_cols++;
@@ -46,7 +53,7 @@ static void cb2_first(int c, void *data) {
 	FieldRowCounter *counter = (FieldRowCounter *)data;
 	counter->num_rows++;
 
-	if (counter->header_row_exists && counter->num_cols_header != counter->num_cols) {
+	if (counter->has_header_row && counter->num_cols_header != counter->num_cols) {
 		counter->error_encountered = true;
 	}
 	counter->num_cols = 0;
@@ -100,7 +107,7 @@ int main(void) {
 	}
 
 	FieldRowCounter counter = {0};
-	counter.header_row_exists = true;
+	counter.has_header_row = true;
 
 	size_t parsed = csv_parse(&parser, csv_buffer, csv_len, cb1_first, cb2_first, &counter);
 	if (parsed != csv_len) {
@@ -131,6 +138,18 @@ int main(void) {
 
 	for (size_t i = 0; i < counter.num_cols_header; i++) {
 		printf("counter.total_col_length[%zu]: %zu\n", i, counter.total_col_length[i]);
+	}
+
+	Copier copier = {0};
+
+	copier.col_data = arena_alloc(&arena, counter.num_cols_header * sizeof(char *));
+	for (size_t i = 0; i < counter.num_cols_header; i++) {
+		copier.col_data[i] = arena_alloc(&arena, counter.total_col_length[i]);
+	}
+
+	copier.write_ptrs = arena_alloc(&arena, counter.num_cols_header * sizeof(char *));
+	for (size_t i = 0; i < counter.num_cols_header; i++) {
+		copier.write_ptrs[i] = copier.col_data[i];
 	}
 
 	csv_free(&parser);
