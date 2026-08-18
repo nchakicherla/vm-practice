@@ -17,10 +17,10 @@ typedef struct FieldRowCounter {
 	size_t num_cols_first_row; // only used if header row doesn't exist
 	bool header_row_exists;
 	bool error_encountered;
-	size_t total_col_length[64];
+	size_t total_col_length[64]; // can increase cap if CSV with > 64 columns is ingested
 } FieldRowCounter;
 
-static void cb1(void *field, size_t len, void *data) {
+static void cb1_first(void *field, size_t len, void *data) {
 	FieldRowCounter *counter = (FieldRowCounter *)data;
 	if (counter->header_row_exists && counter->num_rows == 0) {
 		counter->num_cols_header++;
@@ -36,10 +36,11 @@ static void cb1(void *field, size_t len, void *data) {
 		counter->total_col_length[counter->num_cols] += len + 1;		
 	}
 	counter->num_cols++;
-	printf("field: %.*s\n", (int)len, (char *)field);
+	(void)field;
+	//printf("field: %.*s\n", (int)len, (char *)field);
 }
 
-static void cb2(int c, void *data) {
+static void cb2_first(int c, void *data) {
 	(void)c;
 	
 	FieldRowCounter *counter = (FieldRowCounter *)data;
@@ -50,7 +51,7 @@ static void cb2(int c, void *data) {
 	}
 	counter->num_cols = 0;
 
-	printf("row completed\n");
+	//printf("row completed\n");
 }
 
 int main(void) {
@@ -101,7 +102,7 @@ int main(void) {
 	FieldRowCounter counter = {0};
 	counter.header_row_exists = true;
 
-	size_t parsed = csv_parse(&parser, csv_buffer, csv_len, cb1, cb2, &counter);
+	size_t parsed = csv_parse(&parser, csv_buffer, csv_len, cb1_first, cb2_first, &counter);
 	if (parsed != csv_len) {
 		fprintf(stderr, "csv parse error: (message) %s\n", csv_strerror(csv_error(&parser)));
 		csv_free(&parser);
@@ -109,11 +110,18 @@ int main(void) {
 		return 3;
 	}
 
-	if (csv_fini(&parser, cb1, cb2, &counter) != 0) {
+	if (csv_fini(&parser, cb1_first, cb2_first, &counter) != 0) {
 		fprintf(stderr, "csv parse error: (message ) %s\n", csv_strerror(csv_error(&parser)));
 		csv_free(&parser);
 		arena_destroy(&arena);
 		return 4;
+	}
+
+	if (counter.error_encountered) {
+		fprintf(stderr, "encountered error while parsing %s\n", csv_path);
+		csv_free(&parser);
+		arena_destroy(&arena);
+		return 5;
 	}
 
 	printf("counter.num_rows: %zu\n", counter.num_rows);
